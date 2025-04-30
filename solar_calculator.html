@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Net Metering Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+        .input-section, .output-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        h2 {
+            color: #555;
+        }
+        h3 {
+            color: #777;
+            margin-top: 15px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .output-section p {
+            margin: 10px 0;
+        }
+        .output-section span {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <h1>Net Metering Calculator</h1>
+    <div class="container">
+        <div class="input-section">
+            <h2>Inputs</h2>
+            <label>Current MERALCO Import Rate (₱/kWh):</label>
+            <input type="number" id="import-rate" min="0" step="0.01" placeholder="e.g., 14.36">
+            <label>Current MERALCO Export Rate (₱/kWh):</label>
+            <input type="number" id="export-rate" min="0" step="0.01" placeholder="e.g., 7.79">
+            <h3>Imported KWH</h3>
+            <label>Previous Reading:</label>
+            <input type="number" id="prev-imported" min="0" placeholder="e.g., 7530">
+            <label>Present Reading:</label>
+            <input type="number" id="pres-imported" min="0" placeholder="e.g., 9146">
+            <h3>Exported KWH</h3>
+            <label>Previous Reading:</label>
+            <input type="number" id="prev-exported" min="0" placeholder="e.g., 4751">
+            <label>Present Reading:</label>
+            <input type="number" id="pres-exported" min="0" placeholder="e.g., 5245">
+            <h3>Solar Gross Output KWH</h3>
+            <label>Previous Reading:</label>
+            <input type="number" id="prev-solar" min="0" placeholder="e.g., 8796">
+            <label>Present Reading:</label>
+            <input type="number" id="pres-solar" min="0" placeholder="e.g., 10052">
+            <button id="calculate-btn">Calculate</button>
+        </div>
+        <div class="output-section">
+            <h2>Outputs</h2>
+            <p>KWH Imported From MERALCO: <span id="imported-kwh"></span> kWh</p>
+            <p>KWH Exported to MERALCO: <span id="exported-kwh"></span> kWh</p>
+            <p>KWH Gross Output By Solar: <span id="solar-output-kwh"></span> kWh</p>
+            <p>Self Consumption From Solar Output: <span id="self-consumption-kwh"></span> kWh</p>
+            <p>Actual Consumption if No Solar is Installed: <span id="actual-consumption-kwh"></span> kWh</p>
+            <p>Actual Consumption if No Solar is Installed: <span id="actual-consumption-php"></span> ₱</p>
+            <p>Savings from Self Consumption: <span id="savings-self-consumption"></span> ₱</p>
+            <p>Savings from Exported: <span id="savings-exported"></span> ₱</p>
+            <p>Total Savings: <span id="total-savings"></span> ₱</p>
+            <p>Daytime Utilization Rate: <span id="daytime-utilization-rate"></span> %</p>
+        </div>
+    </div>
+    <script>
+        document.getElementById('calculate-btn').addEventListener('click', function() {
+            // Retrieve input values
+            const importRate = parseFloat(document.getElementById('import-rate').value);
+            const exportRate = parseFloat(document.getElementById('export-rate').value);
+            const prevImported = parseFloat(document.getElementById('prev-imported').value);
+            const presImported = parseFloat(document.getElementById('pres-imported').value);
+            const prevExported = parseFloat(document.getElementById('prev-exported').value);
+            const presExported = parseFloat(document.getElementById('pres-exported').value);
+            const prevSolar = parseFloat(document.getElementById('prev-solar').value);
+            const presSolar = parseFloat(document.getElementById('pres-solar').value);
+
+            // Input validation
+            if (isNaN(importRate) || isNaN(exportRate) || isNaN(prevImported) || isNaN(presImported) ||
+                isNaN(prevExported) || isNaN(presExported) || isNaN(prevSolar) || isNaN(presSolar)) {
+                alert('Please enter valid numbers for all fields.');
+                return;
+            }
+            if (importRate < 0 || exportRate < 0 || prevImported < 0 || presImported < 0 ||
+                prevExported < 0 || presExported < 0 || prevSolar < 0 || presSolar < 0) {
+                alert('All values must be non-negative.');
+                return;
+            }
+            if (presImported < prevImported) {
+                alert('Present Imported Reading must be greater than or equal to Previous Imported Reading.');
+                return;
+            }
+            if (presExported < prevExported) {
+                alert('Present Exported Reading must be greater than or equal to Previous Exported Reading.');
+                return;
+            }
+            if (presSolar < prevSolar) {
+                alert('Present Solar Reading must be greater than or equal to Previous Solar Reading.');
+                return;
+            }
+
+            // Calculate differences
+            const importedKwh = presImported - prevImported;
+            const exportedKwh = presExported - prevExported;
+            const solarOutputKwh = presSolar - prevSolar;
+
+            if (exportedKwh > solarOutputKwh) {
+                alert('Exported KWH cannot exceed Solar Gross Output KWH.');
+                return;
+            }
+
+            // Perform calculations
+            const selfConsumptionKwh = solarOutputKwh - exportedKwh;
+            const actualConsumptionKwh = importedKwh + selfConsumptionKwh;
+            const actualConsumptionPhp = actualConsumptionKwh * importRate;
+            const savingsSelfConsumption = selfConsumptionKwh * importRate;
+            const savingsExported = exportedKwh * exportRate;
+            const totalSavings = savingsSelfConsumption + savingsExported;
+            const daytimeUtilizationRate = solarOutputKwh > 0 ? (selfConsumptionKwh / solarOutputKwh) * 100 : 0;
+
+            // Display results
+            document.getElementById('imported-kwh').textContent = importedKwh.toFixed(2);
+            document.getElementById('exported-kwh').textContent = exportedKwh.toFixed(2);
+            document.getElementById('solar-output-kwh').textContent = solarOutputKwh.toFixed(2);
+            document.getElementById('self-consumption-kwh').textContent = selfConsumptionKwh.toFixed(2);
+            document.getElementById('actual-consumption-kwh').textContent = actualConsumptionKwh.toFixed(2);
+            document.getElementById('actual-consumption-php').textContent = actualConsumptionPhp.toFixed(2);
+            document.getElementById('savings-self-consumption').textContent = savingsSelfConsumption.toFixed(2);
+            document.getElementById('savings-exported').textContent = savingsExported.toFixed(2);
+            document.getElementById('total-savings').textContent = totalSavings.toFixed(2);
+            document.getElementById('daytime-utilization-rate').textContent = daytimeUtilizationRate.toFixed(2);
+        });
+    </script>
+</body>
+</html>
